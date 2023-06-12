@@ -2,31 +2,35 @@ import { enqueue, getTarget, getTargetRect, h, parseStyle } from "./utils.ts"
 
 export const affixProps = {
   offset: 0,
-  activeClass: '',
-  activeStyle: '',
+  'active-class': '',
+  'active-style': '',
   target: ''
 }
 
-export default class Affix extends HTMLElement {
+export class Affix extends HTMLElement {
   __container!: HTMLElement | Window
   __fixed!: HTMLElement
   __ro!: ResizeObserver
+  __mounted = false
   value = false
 
   constructor() {
     super()
-    const root = this.attachShadow({ mode: 'open' })
-    root.appendChild(this.__fixed = h('div', undefined, [h('slot')]))
-    this.style.display = 'block'
+    this.attachShadow({ mode: 'open' })
   }
-
+  
   connectedCallback() {
+    this.shadowRoot!.replaceChildren(this.__fixed = h('div', undefined, [h('slot')]))
+    this.style.display = 'block'
+    this.__mounted = true
+
     this.__ro = new ResizeObserver(this.queueForceUpdate)
     this.__ro.observe(this.__fixed)
     this.setTarget()
     window.addEventListener('resize', this.queueForceUpdate)
   }
   disconnectedCallback() {
+    this.__mounted = false
     this.__ro.disconnect()
     this.__container?.removeEventListener('scroll', this.__onscroll)
     window.removeEventListener('resize', this.queueForceUpdate)
@@ -37,6 +41,7 @@ export default class Affix extends HTMLElement {
   }
 
   attributeChangedCallback(name: keyof typeof affixProps, old: string, val: string) {
+    if (!this.__mounted) return
     if (name === 'target') this.setTarget(val)
     this.queueForceUpdate()
   }
@@ -46,11 +51,11 @@ export default class Affix extends HTMLElement {
   }
 
   get activeStyle() {
-    return this.getAttribute('activeStyle') || affixProps.activeStyle
+    return this.getAttribute('active-style') || affixProps['active-style']
   }
 
   get activeClass() {
-    return this.getAttribute('activeClass') || affixProps.activeClass
+    return this.getAttribute('active-class') || affixProps['active-class']
   }
 
   setTarget(str?: string) {
@@ -106,3 +111,5 @@ export default class Affix extends HTMLElement {
 }
 
 customElements.define('wc-affix', Affix)
+
+export default Affix
